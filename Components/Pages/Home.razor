@@ -1,0 +1,254 @@
+﻿@page "/"
+@rendermode InteractiveServer
+
+<PageTitle>Веб версия шахматы с помощью C#</PageTitle>
+
+<center>
+    <h2>Веб версия шахматы с помощью C#</h2>
+    <h3>@info</h3>
+
+    @if (win == true)
+    {
+        <button @onclick="NewGame">Новая игра</button>
+        <br><br>
+    }
+
+    <table border="2" cellspacing="0">
+        @for (int i = 0; i < 8; i = i + 1)
+        {
+            <tr>
+                @for (int j = 0; j < 8; j = j + 1)
+                {
+                    int id = i * 8 + j;
+                    string bg = "beige";
+                    if ((i + j) % 2 == 1)
+                    {
+                        bg = "brown";
+                    }
+                    if (id == pick)
+                    {
+                        bg = "lightgreen";
+                    }
+
+                    <td @onclick="() => CellClick(id)" bgcolor="@bg" width="60" height="60" align="center">
+                        <font size="6">@board[id]</font> 
+                    </td>
+                }
+            </tr>
+        }
+    </table>
+</center>
+
+@code {
+    string[] board = {
+        "♜", "♞", "♝", "♛", "♚", "♝", "♞", "♜",
+        "♟", "♟", "♟", "♟", "♟", "♟", "♟", "♟",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "", "", "", "", "", "", "", "",
+        "♙", "♙", "♙", "♙", "♙", "♙", "♙", "♙",
+        "♖", "♘", "♗", "♕", "♔", "♗", "♘", "♖"
+    };
+
+    string step = "white";
+    string info = "Ходят белые";
+    int pick = -1;
+    bool win = false;
+
+    string whitePieces = "♙♖♘♗♕♔";
+    string blackPieces = "♟♜♞♝♛♚";
+
+    void NewGame()
+    {
+        step = "white";
+        info = "Ходят белые";
+        pick = -1;
+        win = false;
+
+        board = new string[] {
+            "♜", "♞", "♝", "♛", "♚", "♝", "♞", "♜",
+            "♟", "♟", "♟", "♟", "♟", "♟", "♟", "♟",
+            "", "", "", "", "", "", "", "",
+            "", "", "", "", "", "", "", "",
+            "", "", "", "", "", "", "", "",
+            "", "", "", "", "", "", "", "",
+            "♙", "♙", "♙", "♙", "♙", "♙", "♙", "♙",
+            "♖", "♘", "♗", "♕", "♔", "♗", "♘", "♖"
+        };
+    }
+
+    void CellClick(int id)
+    {
+        if (win == true) return;
+
+        string f = board[id];
+
+        if (pick != -1)
+        {
+            if (CheckMove(pick, id) == true)
+            {
+                if (f == "♔" || f == "♚")
+                {
+                    win = true;
+                    if (step == "white") info = "Победа белых!";
+                    else info = "Победа черных!";
+                }
+
+                board[id] = board[pick];
+                board[pick] = "";
+
+                if (win == false)
+                {
+                    if (step == "white")
+                    {
+                        step = "black";
+                        info = "Ходят черные";
+                    }
+                    else
+                    {
+                        step = "white";
+                        info = "Ходят белые";
+                    }
+                }
+                pick = -1;
+                return;
+            }
+        }
+
+        if (f != "")
+        {
+            if (step == "white" && whitePieces.Contains(f)) pick = id;
+            else if (step == "black" && blackPieces.Contains(f)) pick = id;
+            else pick = -1;
+        }
+        else
+        {
+            pick = -1;
+        }
+    }
+
+    bool CheckMove(int a, int b)
+    {
+        string f = board[a];
+        string target = board[b];
+
+        if (target != "")
+        {
+            if (whitePieces.Contains(f) && whitePieces.Contains(target)) return false;
+            if (blackPieces.Contains(f) && blackPieces.Contains(target)) return false;
+        }
+
+        int y1 = a / 8;
+        int x1 = a % 8;
+        int y2 = b / 8;
+        int x2 = b % 8;
+
+        int dx = x2 - x1;
+        if (dx < 0) dx = -dx;
+        int dy = y2 - y1;
+        if (dy < 0) dy = -dy;
+
+        if (f == "♙")
+        {
+            if (x1 == x2 && y2 == y1 - 1 && target == "") return true;
+            if (x1 == x2 && y1 == 6 && y2 == 4 && target == "" && board[a - 8] == "") return true;
+            if (dx == 1 && y2 == y1 - 1 && target != "") return true;
+            return false;
+        }
+
+        if (f == "♟")
+        {
+            if (x1 == x2 && y2 == y1 + 1 && target == "") return true;
+            if (x1 == x2 && y1 == 1 && y2 == 3 && target == "" && board[a + 8] == "") return true;
+            if (dx == 1 && y2 == y1 + 1 && target != "") return true;
+            return false;
+        }
+
+        if (f == "♘" || f == "♞")
+        {
+            if ((dx == 2 && dy == 1) || (dx == 1 && dy == 2)) return true;
+            return false;
+        }
+
+        if (f == "♔" || f == "♚")
+        {
+            if (dx <= 1 && dy <= 1) return true;
+            return false;
+        }
+
+        if (f == "♖" || f == "♜")
+        {
+            if (x1 != x2 && y1 != y2) return false;
+            return LineFree(x1, y1, x2, y2);
+        }
+
+        if (f == "♗" || f == "♝")
+        {
+            if (dx != dy) return false;
+            return DiagFree(x1, y1, x2, y2);
+        }
+
+        if (f == "♕" || f == "♛")
+        {
+            if (x1 == x2 || y1 == y2) return LineFree(x1, y1, x2, y2);
+            if (dx == dy) return DiagFree(x1, y1, x2, y2);
+            return false;
+        }
+
+        return false;
+    }
+
+    bool LineFree(int x1, int y1, int x2, int y2)
+    {
+        if (x1 == x2)
+        {
+            int min = y1;
+            int max = y2;
+            if (y2 < y1)
+            {
+                min = y2;
+                max = y1;
+            }
+            for (int y = min + 1; y < max; y = y + 1)
+            {
+                if (board[y * 8 + x1] != "") return false;
+            }
+        }
+        else
+        {
+            int min = x1;
+            int max = x2;
+            if (x2 < x1)
+            {
+                min = x2;
+                max = x1;
+            }
+            for (int x = min + 1; x < max; x = x + 1)
+            {
+                if (board[y1 * 8 + x] != "") return false;
+            }
+        }
+        return true;
+    }
+
+    bool DiagFree(int x1, int y1, int x2, int y2)
+    {
+        int sx = 1;
+        if (x2 < x1) sx = -1;
+
+        int sy = 1;
+        if (y2 < y1) sy = -1;
+
+        int x = x1 + sx;
+        int y = y1 + sy;
+
+        while (x != x2)
+        {
+            if (board[y * 8 + x] != "") return false;
+            x = x + sx;
+            y = y + sy;
+        }
+        return true;
+    }
+}
